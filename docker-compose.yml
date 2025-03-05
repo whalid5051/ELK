@@ -1,0 +1,51 @@
+#This file is used to create a Dockerized pilpeline of ELK. 
+#The pipeline of monitoring is linked to the application HTTP:apache that generates logs once the user reaches the website.
+
+version: '3'
+services:
+  # Application générant des logs
+  apache:
+    image: httpd:2.4
+    container_name: apache
+    ports:
+      - "8080:80"
+    volumes:
+      - ./apache-logs:/usr/local/apache2/logs
+    networks:
+      - elk
+
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.4.3
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+    networks:
+      - elk
+
+  # Logstash
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.4.3
+    environment:
+      - xpack.monitoring.enabled=false
+    ports:
+      - "5044:5044"
+    networks:
+      - elk
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+
+  # Kibana
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.4.3
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - elk
+
+networks:
+  elk:
+    driver: bridge
